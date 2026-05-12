@@ -1,24 +1,31 @@
 import { useState } from 'react';
 import { Mail, MapPin, Phone, Send, MessageSquare, CheckCircle } from 'lucide-react';
+import { messagesDB } from '../lib/db';
+import { useSEO } from '../hooks/useSEO';
 
 export default function ContactPage() {
   const [form, setForm] = useState({ name: '', email: '', subject: '', message: '' });
   const [sent, setSent] = useState(false);
 
+  useSEO({
+    title: 'Contact Us',
+    description: 'Get in touch with WordWeaver. Have a question, feedback, or want to contribute? We respond within 24 hours.',
+    keywords: 'contact, wordweaver, feedback, support, contribute',
+  });
+
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
-    // Simulate saving message
+
     const message = {
       ...form,
       id: Date.now(),
+      read: false,
       submittedAt: new Date().toISOString()
     };
-    const existing = JSON.parse(localStorage.getItem('wordweaver_messages') || '[]');
-    localStorage.setItem('wordweaver_messages', JSON.stringify([...existing, message]));
-    
+    messagesDB.add(message);
+
     setSent(true);
     setForm({ name: '', email: '', subject: '', message: '' });
   };
@@ -33,7 +40,7 @@ export default function ContactPage() {
         <p className="text-slate-500 dark:text-slate-400 mb-10 leading-relaxed">
           Thank you for reaching out. Your query has been logged and our team will get back to you within 24 hours.
         </p>
-        <button 
+        <button
           onClick={() => setSent(false)}
           className="text-[10px] font-bold uppercase tracking-[0.2em] px-10 py-4 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-900 transition-all rounded-sm"
         >
@@ -76,17 +83,17 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Location</p>
-                  <p className="text-sm font-medium">Worldwide / Remote-First</p>
+                  <p className="text-sm font-medium"> India </p>
                 </div>
               </div>
             </div>
           </div>
 
           <div className="space-y-4 pt-8 border-t border-slate-100 dark:border-slate-900">
-             <h2 className="text-[10px] font-bold uppercase tracking-[0.3em] text-slate-400">Restless & Relentless</h2>
-             <p className="text-xs text-slate-500 leading-loose uppercase tracking-widest font-bold">
-               A stage for creators who refuse confinement.
-             </p>
+            <h2 className="text-[10px] font-bold uppercase tracking-[0.3em] text-slate-400">Restless & Relentless</h2>
+            <p className="text-xs text-slate-500 leading-loose uppercase tracking-widest font-bold">
+              A stage for creators who refuse confinement.
+            </p>
           </div>
         </div>
 

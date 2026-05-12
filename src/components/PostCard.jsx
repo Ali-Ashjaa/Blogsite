@@ -4,8 +4,8 @@ import { format } from 'date-fns';
 import { getAuthorById, getCategoryById } from '../data/posts';
 
 export default function PostCard({ post, featured = false }) {
-  const author = getAuthorById(post.authorId);
-  const category = getCategoryById(post.category);
+   const authorName = post.source === 'community' ? post.author : getAuthorById(post.authorId)?.name;
+   const category = getCategoryById(post.category);
 
   return (
     <article
@@ -14,12 +14,16 @@ export default function PostCard({ post, featured = false }) {
       }`}
     >
       {/* Cover Image (Subtle) */}
-      <div className={`relative shrink-0 overflow-hidden bg-slate-50 dark:bg-slate-900 rounded-sm w-full ${featured ? 'aspect-video md:aspect-[16/9]' : 'md:w-48 aspect-[4/3] md:aspect-square'}`}>
+      <div className={`relative shrink-0 overflow-hidden bg-slate-100 dark:bg-slate-900 rounded-sm w-full ${featured ? 'aspect-video md:aspect-[16/9]' : 'md:w-48 aspect-[4/3] md:aspect-square'}`}>
         <img
-          src={post.coverImage}
+          src={post.coverImage || 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=800&q=80'}
           alt={post.title}
-          className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-700 opacity-80 group-hover:opacity-100"
+          className="w-full h-full object-cover transition-all duration-700 group-hover:scale-105"
           loading="lazy"
+          onError={(e) => {
+            e.target.onerror = null;
+            e.target.src = 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=800&q=80';
+          }}
         />
       </div>
 
@@ -49,7 +53,7 @@ export default function PostCard({ post, featured = false }) {
               {post.readTime} min
             </span>
             <span className="flex items-center gap-1 uppercase">
-              {author?.name}
+               {authorName}
             </span>
           </div>
 

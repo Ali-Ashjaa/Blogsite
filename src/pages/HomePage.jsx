@@ -1,22 +1,36 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import PostCard from '../components/PostCard';
 import Sidebar from '../components/Sidebar';
-import { posts, categories } from '../data/posts';
+import { categories } from '../data/posts';
+import { postsDB, settingsDB } from '../lib/db';
 import { Sparkles, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
-
-const POSTS_PER_PAGE = 6;
+import { useSEO } from '../hooks/useSEO';
 
 export default function HomePage() {
+  const [allPosts, setAllPosts] = useState([]);
   const [selectedCat, setSelectedCat] = useState('all');
   const [page, setPage] = useState(1);
+  const settings = settingsDB.get();
+
+  useEffect(() => {
+    setAllPosts(postsDB.getAll());
+  }, []);
+
+  useSEO({
+    title: null,
+    description: settings.seoDescription,
+    keywords: settings.seoKeywords,
+  });
+
+  const activePosts = allPosts.filter(p => p.status !== 'hidden');
 
   const filtered = selectedCat === 'all'
-    ? posts
-    : posts.filter((p) => p.category === selectedCat);
+    ? activePosts
+    : activePosts.filter((p) => p.category === selectedCat);
 
-  const featured = posts.filter((p) => p.featured).slice(0, 2);
-  const paged = filtered.slice(0, page * POSTS_PER_PAGE);
+  const featured = activePosts.filter((p) => p.featured).slice(0, 2);
+  const paged = filtered.slice(0, page * (settings.postsPerPage || 6));
   const hasMore = paged.length < filtered.length;
 
   return (
@@ -24,8 +38,8 @@ export default function HomePage() {
       {/* Intro Section */}
       <section className="mb-24 max-w-3xl">
         <h1 className="text-5xl md:text-7xl font-bold leading-[0.9] mb-8 font-outfit uppercase tracking-tighter">
-          WORDWEAVER <br />
-          <span className="text-slate-300 dark:text-slate-800">RESTLESS & RELENTLESS.</span>
+          {settings.siteName} <br />
+          <span className="text-slate-300 dark:text-slate-800">{settings.tagline}</span>
         </h1>
         <p className="text-slate-500 dark:text-slate-400 text-xl leading-relaxed mb-10 max-w-2xl">
           WordWeaver is a stage for creators who refuse confinement. We aim to grow from the urge to bring forth the unsaid, and give it a voice that can’t ever be silenced.

@@ -1,16 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Sun, Moon, Search, Menu, X, PenLine, LogIn, LogOut } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
-
-const navLinks = [
-  { label: 'Home', to: '/' },
-  { label: 'Categories', to: '/categories' },
-  { label: 'Submit Article', to: '/submit' },
-  { label: 'About', to: '/about' },
-  { label: 'Contact', to: '/contact' },
-];
+import { settingsDB } from '../lib/db';
 
 export default function Navbar() {
   const { dark, toggle } = useTheme();
@@ -18,8 +11,22 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
+  const [settings, setSettings] = useState(settingsDB.get());
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    // Re-sync settings when location changes (simple way to catch updates)
+    setSettings(settingsDB.get());
+  }, [location]);
+
+  const navLinks = [
+    { label: 'Home', to: '/' },
+    { label: 'Categories', to: '/categories' },
+    ...(settings.allowSubmissions ? [{ label: 'Submit Article', to: '/submit' }] : []),
+    { label: 'About', to: '/about' },
+    { label: 'Contact', to: '/contact' },
+  ];
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -37,7 +44,7 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 font-bold text-lg text-slate-900 dark:text-white group">
-            <span className="tracking-tighter font-outfit uppercase">WordWeaver<span className="text-slate-400">.</span></span>
+            <span className="tracking-tighter font-outfit uppercase">{settings.siteName}<span className="text-slate-400">.</span></span>
           </Link>
 
           {/* Desktop Nav */}

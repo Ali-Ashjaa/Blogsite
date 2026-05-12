@@ -1,13 +1,21 @@
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
-import { getCategoryById, getPostsByCategory } from '../data/posts';
+import { getCategoryById } from '../data/posts';
+import { postsDB } from '../lib/db';
 import PostCard from '../components/PostCard';
 import Sidebar from '../components/Sidebar';
 
 export default function CategoryPage() {
   const { id } = useParams();
+  const [posts, setPosts] = useState([]);
   const category = getCategoryById(id);
-  const posts = getPostsByCategory(id);
+
+  useEffect(() => {
+    const all = postsDB.getAll();
+    const filtered = all.filter(p => p.category === id && p.status !== 'hidden');
+    setPosts(filtered);
+  }, [id]);
 
   if (!category) {
     return (

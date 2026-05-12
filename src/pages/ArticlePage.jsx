@@ -3,11 +3,13 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Clock, Eye, Calendar, ArrowLeft, Share2, Send, Link as LinkIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import {
-  getPostBySlug, getAuthorById, getCategoryById,
-  getRelatedPosts, comments as allComments, posts
+  getAuthorById, getCategoryById,
+  comments as allComments
 } from '../data/posts';
+import { postsDB } from '../lib/db';
 import Sidebar from '../components/Sidebar';
 import PostCard from '../components/PostCard';
+import { useSEO } from '../hooks/useSEO';
 
 function ShareButtons({ title, url }) {
   const tweet = `https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`;
@@ -59,7 +61,7 @@ function CommentForm({ onSubmit }) {
 
 // Very simple markdown-like renderer for our post content
 function ArticleBody({ content }) {
-  const lines = content.trim().split('\n');
+  const lines = (content || '').trim().split('\n');
   const elements = [];
   let i = 0;
   let codeBuffer = [];
@@ -129,20 +131,41 @@ function ArticleBody({ content }) {
 export default function ArticlePage() {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const post = getPostBySlug(slug);
-
-  const [views, setViews] = useState(post?.views ?? 0);
-  const [localComments, setLocalComments] = useState(allComments[post?.id] || []);
+  const [post, setPost] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [related, setRelated] = useState([]);
+  const [views, setViews] = useState(0);
 
   useEffect(() => {
-    if (!post) return;
-    const key = `views_${post.id}`;
-    const stored = parseInt(localStorage.getItem(key) || '0');
-    const newCount = stored + 1;
-    localStorage.setItem(key, newCount);
-    setViews(post.views + newCount);
+    const all = postsDB.getAll();
+    const found = all.find(p => p.slug === slug);
+
+    if (found) {
+      setPost(found);
+
+      // Related posts
+      const rel = all.filter(p => p.id !== found.id && p.category === found.category && p.status !== 'hidden').slice(0, 3);
+      setRelated(rel);
+
+      const key = `views_${found.id}`;
+      const stored = parseInt(localStorage.getItem(key) || '0');
+      const newCount = stored + 1;
+      localStorage.setItem(key, newCount);
+      setViews((found.views || 0) + newCount);
+    }
+    setLoading(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [slug]);
+
+  const [localComments, setLocalComments] = useState([]);
+
+  useEffect(() => {
+    if (post) {
+      setLocalComments(allComments[post.id] || []);
+    }
+  }, [post]);
+
+  if (loading) return <div className="p-24 text-center">Loading...</div>;
 
   if (!post) {
     return (
@@ -158,9 +181,10 @@ export default function ArticlePage() {
     );
   }
 
-  const author = getAuthorById(post.authorId);
+  const author = post.source === 'community'
+    ? { name: post.author, avatar: post.authorAvatar, bio: post.authorBio, role: 'Guest Contributor' }
+    : getAuthorById(post.authorId);
   const category = getCategoryById(post.category);
-  const related = getRelatedPosts(post);
 
   const handleComment = (form) => {
     setLocalComments((prev) => [
@@ -215,7 +239,15 @@ export default function ArticlePage() {
 
           {/* Cover */}
           <div className="rounded-2xl overflow-hidden mb-8 bg-slate-100 dark:bg-slate-800">
-            <img src={post.coverImage} alt={post.title} className="w-full h-64 md:h-80 object-cover" />
+            <img
+              src={post.coverImage || 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=800&q=80'}
+              alt={post.title}
+              className="w-full h-64 md:h-80 object-cover"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=800&q=80';
+              }}
+            />
           </div>
 
           {/* Content */}
@@ -272,7 +304,7 @@ export default function ArticlePage() {
           {/* Related Posts */}
           {related.length > 0 && (
             <section className="mt-12">
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-5">📚 Related Articles</h3>
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-5">Related Articles</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 {related.map((p) => <PostCard key={p.id} post={p} />)}
               </div>

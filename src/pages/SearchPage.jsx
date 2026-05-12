@@ -1,12 +1,30 @@
+import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { ArrowLeft, Search } from 'lucide-react';
-import { searchPosts } from '../data/posts';
+import { postsDB } from '../lib/db';
 import PostCard from '../components/PostCard';
 
 export default function SearchPage() {
   const [params] = useSearchParams();
+  const [results, setResults] = useState([]);
   const query = params.get('q') || '';
-  const results = query ? searchPosts(query) : [];
+
+  useEffect(() => {
+    if (query) {
+      const q = query.toLowerCase();
+      const all = postsDB.getAll();
+      const filtered = all.filter(p => 
+        p.status !== 'hidden' && (
+          p.title.toLowerCase().includes(q) ||
+          p.excerpt.toLowerCase().includes(q) ||
+          p.category.toLowerCase().includes(q)
+        )
+      );
+      setResults(filtered);
+    } else {
+      setResults([]);
+    }
+  }, [query]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">

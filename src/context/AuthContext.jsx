@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { usersDB, sessionDB, postsDB } from '../lib/db';
 
 const AuthContext = createContext();
 
@@ -7,66 +8,78 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check local storage for existing session
-    const storedUser = localStorage.getItem('wordweaver_user');
-    const allUsers = localStorage.getItem('wordweaver_all_users');
-    
-    if (!allUsers) {
-      // Initialize with default admin
-      const initialUsers = [{ id: 1, name: 'Admin', email: 'admin@wordweaver.com', password: 'admin123', role: 'admin' }];
-      localStorage.setItem('wordweaver_all_users', JSON.stringify(initialUsers));
-    }
+    // Initialize default admin if no users exist
+    usersDB.init();
+    // Initialize posts if none exist
+    postsDB.init();
 
+    // Restore session
+    const storedUser = sessionDB.get();
     if (storedUser) {
-      setUser(JSON.parse(storedUser));
+      setUser(storedUser);
     }
     setLoading(false);
   }, []);
 
   const login = (email, password) => {
-    const allUsers = JSON.parse(localStorage.getItem('wordweaver_all_users') || '[]');
-    const foundUser = allUsers.find(u => u.email === email && u.password === password);
+    const cleanEmail = (email || '').trim().toLowerCase();
+    const cleanPassword = (password || '').trim();
+    const found = usersDB.findByEmail(cleanEmail);
     
-    if (foundUser) {
-      const { password, ...userData } = foundUser; // Remove password from state
+    if (found && found.password === cleanPassword) {
+      const { password: _p, ...userData } = found;
       setUser(userData);
-      localStorage.setItem('wordweaver_user', JSON.stringify(userData));
-      return true;
+      sessionDB.set(userData);
+      return { success: true, user: userData };
     }
-    return false;
+    return { success: false, message: 'Invalid email or password.' };
   };
 
   const signup = (name, email, password) => {
-    const allUsers = JSON.parse(localStorage.getItem('wordweaver_all_users') || '[]');
-    
-    if (allUsers.some(u => u.email === email)) {
-      return { success: false, message: 'Email already registered.' };
+    const cleanName = (name || '').trim();
+    const cleanEmail = (email || '').trim().toLowerCase();
+    const cleanPassword = (password || '').trim();
+
+    if (!cleanName || !cleanEmail || !cleanPassword) {
+      return { success: false, message: 'All fields are required.' };
+    }
+    if (cleanPassword.length < 6) {
+      return { success: false, message: 'Password must be at least 6 characters.' };
+    }
+    if (usersDB.findByEmail(cleanEmail)) {
+      return { success: false, message: 'This email is already registered.' };
     }
 
     const newUser = {
       id: Date.now(),
-      name,
-      email,
-      password,
-      role: 'user'
+      name: cleanName,
+      email: cleanEmail,
+      password: cleanPassword,
+      role: 'user',
+      createdAt: new Date().toISOString(),
     };
 
-    allUsers.push(newUser);
-    localStorage.setItem('wordweaver_all_users', JSON.stringify(allUsers));
-    
-    const { password: p, ...userData } = newUser;
+    usersDB.add(newUser);
+
+    const { password: _p, ...userData } = newUser;
     setUser(userData);
-    localStorage.setItem('wordweaver_user', JSON.stringify(userData));
-    return { success: true };
+    sessionDB.set(userData);
+    return { success: true, user: userData };
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('wordweaver_user');
+    sessionDB.clear();
+  };
+
+  const updateUser = (changes) => {
+    const updated = { ...user, ...changes };
+    setUser(updated);
+    sessionDB.set(updated);
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, signup, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, signup, logout, updateUser, loading }}>
       {!loading && children}
     </AuthContext.Provider>
   );

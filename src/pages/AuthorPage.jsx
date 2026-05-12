@@ -1,13 +1,22 @@
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, BookOpen, Eye } from 'lucide-react';
-import { getAuthorById, posts } from '../data/posts';
+import { getAuthorById } from '../data/posts';
+import { postsDB } from '../lib/db';
 import PostCard from '../components/PostCard';
 
 export default function AuthorPage() {
   const { id } = useParams();
+  const [authorPosts, setAuthorPosts] = useState([]);
   const author = getAuthorById(Number(id));
-  const authorPosts = posts.filter((p) => p.authorId === Number(id));
-  const totalViews = authorPosts.reduce((sum, p) => sum + p.views, 0);
+
+  useEffect(() => {
+    const all = postsDB.getAll();
+    const filtered = all.filter(p => p.authorId === Number(id) && p.status !== 'hidden');
+    setAuthorPosts(filtered);
+  }, [id]);
+
+  const totalViews = authorPosts.reduce((sum, p) => sum + (p.views || 0), 0);
 
   if (!author) {
     return (

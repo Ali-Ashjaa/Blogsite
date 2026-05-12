@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Send, Image as ImageIcon, FileText, CheckCircle } from 'lucide-react';
+import { submissionsDB } from '../lib/db';
+import { useSEO } from '../hooks/useSEO';
 
 export default function SubmitArticlePage() {
   const { user } = useAuth();
@@ -10,7 +12,15 @@ export default function SubmitArticlePage() {
     category: 'General',
     excerpt: '',
     content: '',
-    coverImage: ''
+    coverImage: '',
+    authorBio: '',
+    authorAvatar: `https://api.dicebear.com/7.x/notionists/svg?seed=${user?.name || 'Guest'}`
+  });
+
+  useSEO({
+    title: 'Submit an Article',
+    description: 'Contribute to WordWeaver. Share your voice, stories, and perspectives with our growing community of readers.',
+    keywords: 'submit article, contribute, write, blog, wordweaver',
   });
 
   const handleSubmit = (e) => {
@@ -23,8 +33,7 @@ export default function SubmitArticlePage() {
       submittedAt: new Date().toISOString()
     };
     
-    const existing = JSON.parse(localStorage.getItem('wordweaver_submissions') || '[]');
-    localStorage.setItem('wordweaver_submissions', JSON.stringify([...existing, submission]));
+    submissionsDB.add(submission);
     
     setSubmitted(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -120,18 +129,115 @@ export default function SubmitArticlePage() {
           />
         </div>
 
-        {/* Cover Image URL */}
+        {/* Cover Image Upload */}
         <div className="space-y-4">
           <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2">
-            <ImageIcon size={14} /> Cover Image URL (Unsplash or similar)
+            <ImageIcon size={14} /> Cover Image (Local Upload)
           </label>
-          <input
-            type="url"
-            value={formData.coverImage}
-            onChange={(e) => setFormData({...formData, coverImage: e.target.value})}
-            className="w-full bg-transparent border-b border-slate-200 dark:border-slate-800 py-3 text-sm outline-none focus:border-slate-900 dark:focus:border-white transition-all"
-            placeholder="https://images.unsplash.com/..."
-          />
+          <div className="relative group">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files[0];
+                if (file) {
+                  const reader = new FileReader();
+                  reader.onloadend = () => {
+                    setFormData({...formData, coverImage: reader.result});
+                  };
+                  reader.readAsDataURL(file);
+                }
+              }}
+              className="hidden"
+              id="cover-upload"
+            />
+            <label 
+              htmlFor="cover-upload"
+              className="flex items-center justify-center w-full border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-sm py-12 hover:border-slate-900 dark:hover:border-white transition-all cursor-pointer bg-slate-50/50 dark:bg-slate-900/30"
+            >
+              <div className="text-center">
+                <ImageIcon size={24} className="mx-auto mb-2 text-slate-300" />
+                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Click to upload or drag & drop</p>
+                <p className="text-[8px] text-slate-400 mt-1 uppercase tracking-tighter">PNG, JPG up to 2MB</p>
+              </div>
+            </label>
+          </div>
+          
+          {formData.coverImage && (
+            <div className="mt-4 rounded-sm overflow-hidden border border-slate-100 dark:border-slate-900 bg-slate-50 dark:bg-slate-900/50">
+              <div className="flex items-center justify-between p-2 border-b border-slate-100 dark:border-slate-900">
+                <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Selected Image Preview</p>
+                <button 
+                  type="button"
+                  onClick={() => setFormData({...formData, coverImage: ''})}
+                  className="text-[9px] font-bold uppercase tracking-widest text-red-500 hover:text-red-600"
+                >
+                  Remove
+                </button>
+              </div>
+              <img 
+                src={formData.coverImage} 
+                alt="Preview" 
+                className="w-full h-48 object-cover"
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Author Details Section */}
+        <div className="border-t border-slate-100 dark:border-slate-900 pt-12 space-y-10">
+          <div>
+            <h3 className="text-xs font-bold uppercase tracking-[0.3em] text-slate-900 dark:text-white mb-6">Author Profile Details</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+              <div className="space-y-4">
+                <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Author Avatar</label>
+                <div className="flex items-center gap-6">
+                  <div className="w-16 h-16 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shrink-0">
+                    <img 
+                      src={formData.authorAvatar} 
+                      alt="Avatar" 
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setFormData({...formData, authorAvatar: reader.result});
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="hidden"
+                      id="avatar-upload"
+                    />
+                    <label 
+                      htmlFor="avatar-upload"
+                      className="inline-block text-[9px] font-bold uppercase tracking-widest px-4 py-2 border border-slate-200 dark:border-slate-800 hover:border-slate-900 dark:hover:border-white transition-all cursor-pointer rounded-sm"
+                    >
+                      Change Avatar
+                    </label>
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-4">
+                <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Author Bio</label>
+                <input
+                  type="text"
+                  required
+                  value={formData.authorBio}
+                  onChange={(e) => setFormData({...formData, authorBio: e.target.value})}
+                  className="w-full bg-transparent border-b border-slate-200 dark:border-slate-800 py-3 text-sm outline-none focus:border-slate-900 dark:focus:border-white transition-all"
+                  placeholder="Writer, thinker, and coffee enthusiast..."
+                />
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Action */}

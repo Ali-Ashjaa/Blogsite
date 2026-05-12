@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useSEO } from '../hooks/useSEO';
 import { PenLine, AlertCircle, ArrowRight } from 'lucide-react';
 
 export default function LoginPage() {
@@ -13,6 +14,11 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  useSEO({
+    title: isLogin ? 'Login' : 'Sign Up',
+    description: 'Sign in to WordWeaver to submit articles, manage your profile, and access your dashboard.',
+  });
+
   const from = location.state?.from?.pathname || '/';
 
   const handleSubmit = (e) => {
@@ -20,10 +26,11 @@ export default function LoginPage() {
     setError('');
     
     if (isLogin) {
-      if (login(email, password)) {
+      const res = login(email, password);
+      if (res.success) {
         navigate(from, { replace: true });
       } else {
-        setError('Invalid credentials.');
+        setError(res.message);
       }
     } else {
       if (!name) {
@@ -97,6 +104,7 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               className="w-full bg-transparent border-b border-slate-200 dark:border-slate-800 py-2 text-sm outline-none focus:border-slate-900 dark:focus:border-white transition-all"
               placeholder="••••••••"
+              minLength={6}
             />
           </div>
 

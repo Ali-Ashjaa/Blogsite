@@ -15,6 +15,8 @@ import AdminLayout from './pages/admin/AdminLayout';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminPosts from './pages/admin/AdminPosts';
 import AdminSubmissions from './pages/admin/AdminSubmissions';
+import AdminMessages from './pages/admin/AdminMessages';
+import AdminSettings from './pages/admin/AdminSettings';
 import LoginPage from './pages/LoginPage';
 import SubmitArticlePage from './pages/SubmitArticlePage';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -57,7 +59,8 @@ export default function App() {
                 <Route index element={<AdminDashboard />} />
                 <Route path="posts" element={<AdminPosts />} />
                 <Route path="submissions" element={<AdminSubmissions />} />
-                <Route path="settings" element={<div className="text-center py-20 text-slate-400 font-outfit uppercase text-[10px] tracking-widest">Settings coming soon...</div>} />
+                <Route path="messages" element={<AdminMessages />} />
+                <Route path="settings" element={<AdminSettings />} />
               </Route>
 
               {/* Main Site Routes */}

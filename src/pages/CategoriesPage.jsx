@@ -1,5 +1,7 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { categories, posts } from '../data/posts';
+import { categories } from '../data/posts';
+import { postsDB } from '../lib/db';
 
 const icons = {
   technology: '💻', lifestyle: '🌿', education: '📚',
@@ -7,6 +9,13 @@ const icons = {
 };
 
 export default function CategoriesPage() {
+  const [allPosts, setAllPosts] = useState([]);
+
+  useEffect(() => {
+    setAllPosts(postsDB.getAll());
+  }, []);
+
+  const activePosts = allPosts.filter(p => p.status !== 'hidden');
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       <div className="mb-10 text-center">
@@ -18,7 +27,7 @@ export default function CategoriesPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-14">
         {categories.map((cat) => {
-          const catPosts = posts.filter((p) => p.category === cat.id);
+          const catPosts = activePosts.filter((p) => p.category === cat.id);
           return (
             <Link
               key={cat.id}
@@ -29,7 +38,7 @@ export default function CategoriesPage() {
               <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                 {cat.name}
               </h2>
-              <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">{cat.count} articles published</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">{catPosts.length} articles published</p>
               <div className="flex flex-wrap gap-2">
                 {catPosts.slice(0, 2).map((p) => (
                   <span key={p.id} className={`text-xs px-2.5 py-1 rounded-full font-medium ${cat.color}`}>
